@@ -3,20 +3,19 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-nativ
 import { useFocusEffect } from 'expo-router';
 import { getWorkouts } from '../../services/storage';
 import { Workout } from '../../types';
+import ScreenBackground from '../../components/ScreenBackground'; // <-- 1. IMPORTAR
 
 export default function HistoryScreen() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Carrega os treinos salvos
   const loadWorkouts = async () => {
     setLoading(true);
     const savedWorkouts = await getWorkouts();
-    setWorkouts(savedWorkouts.reverse()); // Mostra os mais recentes primeiro
+    setWorkouts(savedWorkouts.reverse());
     setLoading(false);
   };
 
-  // useFocusEffect é chamado toda vez que a tela ganha foco
   useFocusEffect(
     useCallback(() => {
       loadWorkouts();
@@ -47,39 +46,47 @@ export default function HistoryScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#FFD60A" />
-      </View>
+      // <-- 2. "EMBRULHAR" O CONTEÚDO
+      <ScreenBackground>
+        <View style={[styles.container, styles.center]}>
+          <ActivityIndicator size="large" color="#FFD60A" />
+        </View>
+      </ScreenBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {workouts.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyText}>Nenhum treino registrado ainda.</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={workouts}
-          keyExtractor={(item) => item.id}
-          renderItem={renderWorkoutItem}
-          contentContainerStyle={styles.listContainer}
-        />
-      )}
-    </View>
+    // <-- 2. "EMBRULHAR" O CONTEÚDO
+    <ScreenBackground>
+      <View style={styles.container}>
+        {workouts.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyText}>Nenhum treino registrado ainda.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={workouts}
+            keyExtractor={(item) => item.id}
+            renderItem={renderWorkoutItem}
+            contentContainerStyle={styles.listContainer}
+          />
+        )}
+      </View>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent', // <-- 3. ALTERAR BACKGROUND
   },
   center: {
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // [ ... todos os seus outros estilos ... ]
+  // (Nenhuma mudança nos outros estilos)
   listContainer: {
     padding: 20,
   },

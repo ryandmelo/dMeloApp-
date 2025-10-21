@@ -1,40 +1,45 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons'; // Importa os ícones
+import { Ionicons } from '@expo/vector-icons';
+import HeaderLogo from '../../components/HeaderLogo'; // <-- 1. IMPORTAR A LOGO
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: '#1C1C1E' }, // Estilo do cabeçalho
-        headerTintColor: '#FFF', // Cor do texto do cabeçalho
-        tabBarStyle: { backgroundColor: '#1C1C1E' }, // Estilo da barra de abas
-        tabBarActiveTintColor: '#FFD60A', // Cor da aba ativa
-        tabBarInactiveTintColor: '#8E8E93', // Cor da aba inativa
+        headerStyle: { backgroundColor: '#1C1C1E' },
+        headerTintColor: '#FFF',
+        tabBarStyle: { backgroundColor: '#1C1C1E' },
+        tabBarActiveTintColor: '#FFD60A',
+        tabBarInactiveTintColor: '#8E8E93',
+
+        // --- 2. ADICIONAR ESTA LINHA ---
+        // Define o componente da logo como o título do header
+        headerTitle: () => <HeaderLogo />,
       }}
     >
       <Tabs.Screen
-        name="index" // Nome do arquivo index.tsx
+        name="index"
         options={{
-          title: 'Treino', // Título na aba
+          title: 'Treino', // Este 'title' agora só afeta o texto da aba
           tabBarIcon: ({ color }) => (
             <Ionicons name="barbell-outline" size={24} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="history" // Nome do arquivo history.tsx
+        name="history"
         options={{
-          title: 'Histórico',
+          title: 'Histórico', // Este 'title' agora só afeta o texto da aba
           tabBarIcon: ({ color }) => (
             <Ionicons name="list-outline" size={24} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="timer" // Nome do arquivo timer.tsx
+        name="timer"
         options={{
-          title: 'Timer',
+          title: 'Timer', // Este 'title' agora só afeta o texto da aba
           tabBarIcon: ({ color }) => (
             <Ionicons name="timer-outline" size={24} color={color} />
           ),
