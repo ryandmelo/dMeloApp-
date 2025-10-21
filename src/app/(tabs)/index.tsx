@@ -11,13 +11,11 @@ import {
 import { useRouter } from 'expo-router';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import ScreenBackground from '../../components/ScreenBackground'; // <-- 1. IMPORTAR
+import ScreenBackground from '../../components/ScreenBackground'; 
 import { saveWorkout } from '../../services/storage';
 import { Exercise, Set } from '../../types';
 
 export default function WorkoutScreen() {
-  // [ ... todo o seu código de state e funções ... ]
-  // (Nenhuma mudança nas funções handleAddExercise, handleAddSet, etc.)
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [currentExercise, setCurrentExercise] = useState('');
   
@@ -32,7 +30,7 @@ export default function WorkoutScreen() {
       ...exercises,
       { name: currentExercise, sets: [{ reps: '', weight: '' }] },
     ]);
-    setCurrentExercise(''); // Limpa o input após adicionar
+    setCurrentExercise(''); 
   };
 
   const handleAddSet = (exerciseIndex: number) => {
@@ -62,11 +60,43 @@ export default function WorkoutScreen() {
     }
   };
 
+  /**
+   * ESTA FUNÇÃO FOI MODIFICADA COM A NOVA VALIDAÇÃO
+   */
   const handleSaveWorkout = async () => {
+    // 1. Validação antiga (continua válida)
     if (exercises.length === 0) {
       Alert.alert('Erro', 'Adicione pelo menos um exercício para salvar.');
       return;
     }
+
+    //
+    // --- INÍCIO DA NOVA VALIDAÇÃO ---
+    //
+    // 2. Iterar por todos os exercícios e todas as séries
+    for (const exercise of exercises) {
+      // 3. Iterar por cada série do exercício
+      for (const set of exercise.sets) {
+        
+        // 4. Verificar se 'reps' OU 'weight' estão vazios
+        //    Usamos .trim() para garantir que " " (espaço) também é considerado vazio
+        if (set.reps.trim() === '' || set.weight.trim() === '') {
+          
+          // 5. Se estiver vazio, mostrar um alerta específico e parar
+          Alert.alert(
+            'Campos Obrigatórios',
+            `Por favor, preencha todos os campos de "Reps" e "Kg" para o exercício "${exercise.name}".`
+          );
+          return; // <-- Interrompe a função AQUI. Não salva.
+        }
+      }
+    }
+    // --- FIM DA NOVA VALIDAÇÃO ---
+    //
+
+
+    // 6. Se o loop terminar e não parar (return), significa que tudo está preenchido.
+    //    Então, salvamos o treino.
     const workout = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
@@ -75,7 +105,7 @@ export default function WorkoutScreen() {
     await saveWorkout(workout);
     Alert.alert('Sucesso!', 'Treino salvo.');
     setExercises([]);
-    router.push('/history');
+    router.push('/history'); // Assumindo que esta é a sua rota de histórico
   };
 
   const handleDeleteExercise = (indexToRemove: number) => {
@@ -135,10 +165,8 @@ export default function WorkoutScreen() {
   return (
     <ScreenBackground>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        {/* O <Text> do título foi removido no passo anterior, o que é ótimo */}
         
         {exercises.map((exercise, exIndex) => (
-          // [ ... todo o seu JSX de exercícios ... ]
           <View key={exIndex} style={styles.exerciseContainer}>
             
             <View style={styles.exerciseHeader}>
@@ -173,7 +201,7 @@ export default function WorkoutScreen() {
                 <Text style={styles.setText}>Série {setIndex + 1}</Text>
                 
                 <Input
-                  placeholder="Reps"
+                  placeholder="Reps *" // Pode adicionar * para indicar obrigatório
                   value={set.reps}
                   onChangeText={(val) => handleSetChange(exIndex, setIndex, 'reps', val)}
                   keyboardType="numeric"
@@ -181,7 +209,7 @@ export default function WorkoutScreen() {
                   placeholderTextColor="#8E8E93"
                 />
                 <Input
-                  placeholder="Kg"
+                  placeholder="Kg *" // Pode adicionar * para indicar obrigatório
                   value={set.weight}
                   onChangeText={(val) => handleSetChange(exIndex, setIndex, 'weight', val)}
                   keyboardType="numeric"
@@ -231,17 +259,16 @@ export default function WorkoutScreen() {
   );
 }
 
+// ... (Todos os seus estilos permanecem exatamente iguais)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent', // <-- 3. ALTERAR BACKGROUND
+    backgroundColor: 'transparent',
   },
   contentContainer: {
     padding: 20,
     paddingBottom: 50,
   },
-  // [ ... todos os seus outros estilos ... ]
-  // (Nenhuma mudança nos outros estilos)
   addExerciseContainer: {
     backgroundColor: '#1C1C1E',
     padding: 15,

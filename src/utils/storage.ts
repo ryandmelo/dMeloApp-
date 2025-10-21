@@ -1,25 +1,21 @@
 /**
  * src/utils/storage.ts
  *
- * Este ficheiro serve para centralizar as definições
- * que usamos para guardar coisas no AsyncStorage.
+ * Define a "chave" e a "interface" (o molde)
+ * dos nossos dados guardados.
  */
 
-/**
- * 1. A Chave (Key) para o Histórico
- * Usamos uma constante para garantir que nunca nos enganamos
- * a escrever o nome da chave noutros ficheiros.
- * O '@dMeloApp/' é uma boa prática para evitar colisões com outras apps.
- */
+// 1. A Chave que usamos para guardar e ler do AsyncStorage
 export const TIMER_HISTORY_KEY = '@dMeloApp/timerHistory';
 
-/**
- * 2. O formato (Interface) do nosso item de histórico
- * Isto diz ao TypeScript "como é" um objeto do nosso histórico,
- * ajudando a prevenir bugs.
- */
+// 2. A Interface (molde) que define o formato de um item do histórico
 export interface HistoryItem {
-  timestamp: number; // Usado como ID único (ex: 1678886400000)
-  text: string;      // A descrição da tarefa (ex: "Estudar React")
-  duration: number;  // O tempo em segundos (ex: 120)
+  timestamp: number; // ID único (a hora em que foi salvo)
+  text: string;      // Descrição da tarefa (ex: "Supino")
+  duration: number;  // Duração em segundos (ex: 120)
+
+  // --- CAMPOS ADICIONADOS ---
+  // Vamos guardar os valores que vêm dos inputs de texto
+  repetitions: string;
+  load: string;
 }
