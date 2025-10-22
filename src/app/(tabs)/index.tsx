@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
   ScrollView, 
   Alert, 
   TextInput,
@@ -14,6 +13,7 @@ import Button from '../../components/Button';
 import ScreenBackground from '../../components/ScreenBackground'; 
 import { saveWorkout } from '../../services/storage';
 import { Exercise, Set } from '../../types';
+import { styles } from './stylesIndex'; //ESTILOS
 
 export default function WorkoutScreen() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -60,43 +60,24 @@ export default function WorkoutScreen() {
     }
   };
 
-  /**
-   * ESTA FUNÇÃO FOI MODIFICADA COM A NOVA VALIDAÇÃO
-   */
   const handleSaveWorkout = async () => {
-    // 1. Validação antiga (continua válida)
     if (exercises.length === 0) {
       Alert.alert('Erro', 'Adicione pelo menos um exercício para salvar.');
       return;
     }
 
-    //
-    // --- INÍCIO DA NOVA VALIDAÇÃO ---
-    //
-    // 2. Iterar por todos os exercícios e todas as séries
     for (const exercise of exercises) {
-      // 3. Iterar por cada série do exercício
       for (const set of exercise.sets) {
-        
-        // 4. Verificar se 'reps' OU 'weight' estão vazios
-        //    Usamos .trim() para garantir que " " (espaço) também é considerado vazio
         if (set.reps.trim() === '' || set.weight.trim() === '') {
-          
-          // 5. Se estiver vazio, mostrar um alerta específico e parar
           Alert.alert(
             'Campos Obrigatórios',
-            `Por favor, preencha todos os campos de "Reps" e "Kg" para o exercício "${exercise.name}".`
+            `Por favor, preencha todos os campos de "Repetições" e "Kg" para o exercício "${exercise.name}".`
           );
-          return; // <-- Interrompe a função AQUI. Não salva.
+          return; 
         }
       }
     }
-    // --- FIM DA NOVA VALIDAÇÃO ---
-    //
 
-
-    // 6. Se o loop terminar e não parar (return), significa que tudo está preenchido.
-    //    Então, salvamos o treino.
     const workout = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
@@ -105,7 +86,7 @@ export default function WorkoutScreen() {
     await saveWorkout(workout);
     Alert.alert('Sucesso!', 'Treino salvo.');
     setExercises([]);
-    router.push('/history'); // Assumindo que esta é a sua rota de histórico
+    router.push('/history');
   };
 
   const handleDeleteExercise = (indexToRemove: number) => {
@@ -131,7 +112,7 @@ export default function WorkoutScreen() {
     if (exercises[exerciseIndex].sets.length <= 1) {
       Alert.alert(
         'Ação inválida',
-        'Todo exercício deve ter pelo menos uma série. Se desejar, remova o exercício inteiro.'
+        'Todo exercício deve ter pelo menos uma série.'
       );
       return;
     }
@@ -165,6 +146,10 @@ export default function WorkoutScreen() {
   return (
     <ScreenBackground>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+
+        <Text style={styles.subtitleText}>
+          Registre abaixo o seu treino de hoje!
+        </Text>
         
         {exercises.map((exercise, exIndex) => (
           <View key={exIndex} style={styles.exerciseContainer}>
@@ -201,7 +186,7 @@ export default function WorkoutScreen() {
                 <Text style={styles.setText}>Série {setIndex + 1}</Text>
                 
                 <Input
-                  placeholder="Reps *" // Pode adicionar * para indicar obrigatório
+                  placeholder="Reps *"
                   value={set.reps}
                   onChangeText={(val) => handleSetChange(exIndex, setIndex, 'reps', val)}
                   keyboardType="numeric"
@@ -209,7 +194,7 @@ export default function WorkoutScreen() {
                   placeholderTextColor="#8E8E93"
                 />
                 <Input
-                  placeholder="Kg *" // Pode adicionar * para indicar obrigatório
+                  placeholder="Kg *"
                   value={set.weight}
                   onChangeText={(val) => handleSetChange(exIndex, setIndex, 'weight', val)}
                   keyboardType="numeric"
@@ -234,7 +219,7 @@ export default function WorkoutScreen() {
             placeholder={
               exercises.length > 0 
                 ? "Próximo exercício (ex: Agachamento)" 
-                : "Nome do Exercício (ex: Supino)"
+                : "Nome do Exercício (ex: Supino Reto)"
             }
             value={currentExercise}
             onChangeText={setCurrentExercise}
@@ -258,86 +243,3 @@ export default function WorkoutScreen() {
     </ScreenBackground>
   );
 }
-
-// ... (Todos os seus estilos permanecem exatamente iguais)
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  contentContainer: {
-    padding: 20,
-    paddingBottom: 50,
-  },
-  addExerciseContainer: {
-    backgroundColor: '#1C1C1E',
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  exerciseContainer: {
-    backgroundColor: '#1C1C1E',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
-  exerciseHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  exerciseTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFD60A',
-    flex: 1,
-  },
-  editInput: {
-    flex: 1,
-    backgroundColor: '#2C2C2E',
-    color: '#FFF',
-    padding: 8,
-    borderRadius: 5,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    marginLeft: 10,
-  },
-  deleteButton: {
-    backgroundColor: '#D11A2A',
-    marginLeft: 5,
-  },
-  setContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  setText: {
-    color: '#FFF',
-    fontSize: 16,
-    flex: 0.25,
-  },
-  setInput: {
-    flex: 0.3,
-    marginHorizontal: 2,
-  },
-  deleteSetButton: {
-    flex: 0.1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 5,
-  },
-  deleteSetText: {
-    color: '#D11A2A',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  saveButton: {
-    marginTop: 10,
-  },
-});

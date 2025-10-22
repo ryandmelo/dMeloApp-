@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Vibration,
   TextInput,
   TouchableOpacity,
@@ -10,7 +9,8 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import Button from '../../components/Button';
-import ScreenBackground from '../../components/ScreenBackground'; // <-- 1. IMPORTAR
+import ScreenBackground from '../../components/ScreenBackground';
+import { styles } from './stylesTimer'; // ESTILOS
 
 const DEFAULT_TIME = 90;
 
@@ -131,8 +131,9 @@ export default function TimerScreen() {
         }
       }}>
         <View style={styles.container}>
-          {/* O <Text> do título foi removido no passo anterior */}
 
+          <Text style={styles.screenTitle}>Timer de Treino</Text>
+          
           <View style={styles.timerCircle}>
             {isEditing ? (
               <View style={styles.editingContainer}>
@@ -194,78 +195,3 @@ export default function TimerScreen() {
     </ScreenBackground>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent', // <-- 3. ALTERAR BACKGROUND
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  // [ ... todos os seus outros estilos ... ]
-  // (Nenhuma mudança nos outros estilos)
-  timerCircle: {
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: '#1C1C1E',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 30,
-    borderWidth: 5,
-    borderColor: '#FFD60A',
-  },
-  timerText: {
-    color: '#FFF',
-    fontSize: 64,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  editingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timerTextInput: {
-    color: '#FFF',
-    fontSize: 64,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    width: 90,
-  },
-  timerColon: {
-    color: '#FFF',
-    fontSize: 56,
-    fontWeight: 'bold',
-    marginHorizontal: -5,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '80%',
-  },
-  setupSection: {
-    marginTop: 60,
-    alignItems: 'center',
-  },
-  setupTitle: {
-    fontSize: 18,
-    color: '#8E8E93',
-    marginBottom: 10,
-  },
-  setupContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '70%',
-  },
-  durationText: {
-    color: '#FFF',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginHorizontal: 20,
-    width: 80, 
-    textAlign: 'center',
-  },
-});

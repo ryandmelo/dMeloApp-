@@ -1,9 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  ActivityIndicator 
+} from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { getWorkouts } from '../../services/storage';
 import { Workout } from '../../types';
-import ScreenBackground from '../../components/ScreenBackground'; // <-- 1. IMPORTAR
+import ScreenBackground from '../../components/ScreenBackground'; 
+import { styles } from './stylesHistory'; //ESTILOS
+
 
 export default function HistoryScreen() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -46,7 +53,6 @@ export default function HistoryScreen() {
 
   if (loading) {
     return (
-      // <-- 2. "EMBRULHAR" O CONTEÚDO
       <ScreenBackground>
         <View style={[styles.container, styles.center]}>
           <ActivityIndicator size="large" color="#FFD60A" />
@@ -56,9 +62,13 @@ export default function HistoryScreen() {
   }
 
   return (
-    // <-- 2. "EMBRULHAR" O CONTEÚDO
     <ScreenBackground>
       <View style={styles.container}>
+        
+        <Text style={styles.screenTitle}>
+          Seu histórico de treinos:
+        </Text>
+
         {workouts.length === 0 ? (
           <View style={styles.center}>
             <Text style={styles.emptyText}>Nenhum treino registrado ainda.</Text>
@@ -76,47 +86,3 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent', // <-- 3. ALTERAR BACKGROUND
-  },
-  center: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // [ ... todos os seus outros estilos ... ]
-  // (Nenhuma mudança nos outros estilos)
-  listContainer: {
-    padding: 20,
-  },
-  emptyText: {
-    color: '#8E8E93',
-    fontSize: 18,
-  },
-  workoutCard: {
-    backgroundColor: '#1C1C1E',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-  },
-  workoutDate: {
-    color: '#FFD60A',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  exerciseItem: {
-    marginLeft: 10,
-    marginBottom: 5,
-  },
-  exerciseName: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  setText: {
-    color: '#DDD',
-    fontSize: 14,
-  },
-});
