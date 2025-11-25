@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-export const styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
@@ -9,12 +9,22 @@ export const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 50,
   },
-  subtitleText: {
-    fontSize: 18,
-    color: '#CBD5E0', 
-    textAlign: 'center',
-    marginBottom: 25, 
+  // NOVOS ESTILOS PARA O LOGOUT
+  logoutContainer: {
+    width: '100%',
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    backgroundColor: '#1C1C1E',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2C2C2E',
+    alignItems: 'flex-end',
   },
+  logoutButton: {
+    backgroundColor: '#3A3A3C',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+  },
+  // ESTILOS DA TELA DE TREINO
   addExerciseContainer: {
     backgroundColor: '#1C1C1E',
     padding: 15,
@@ -87,3 +97,6 @@ export const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
+
+// ESTA LINHA É ESSENCIAL para que o 'import styles...' funcione!
+export default styles;

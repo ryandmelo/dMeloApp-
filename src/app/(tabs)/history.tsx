@@ -1,22 +1,31 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
   View, 
   Text, 
   FlatList, 
-  ActivityIndicator 
+  ActivityIndicator, 
+  Alert, 
+  StyleSheet
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-
-// 1. IMPORTAÇÕES DO CALENDÁRIO
-import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { MarkedDates } from 'react-native-calendars/src/types'; 
+import { Calendar, LocaleConfig, DateData } from 'react-native-calendars';
 import { getWorkouts } from '../../services/storage';
 import { Workout } from '../../types';
 import ScreenBackground from '../../components/ScreenBackground'; 
-// 2. IMPORTA O TEMA DO CALENDÁRIO
-import { styles, calendarTheme } from './stylesHistory'; 
+import Button from '../../components/Button'; 
+import { useAuth } from '../../context/AuthContext'; 
+import styles from '../../styles/stylesHistory'; 
+import { calendarTheme } from '../../styles/stylesHistory';
 
-// 3. CONFIGURA O CALENDÁRIO PARA PORTUGUÊS
+type MarkedDates = {
+  [date: string]: {
+    marked?: boolean;
+    dotColor?: string;
+    selected?: boolean;
+    selectedColor?: string;
+  };
+};
+
 LocaleConfig.locales['pt-br'] = {
   monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
   monthNamesShort: ['Jan.','Fev.','Mar.','Abr.','Mai.','Jun.','Jul.','Ago.','Set.','Out.','Nov.','Dez.'],
@@ -26,76 +35,81 @@ LocaleConfig.locales['pt-br'] = {
 };
 LocaleConfig.defaultLocale = 'pt-br';
 
-// Helper para pegar a data de hoje no formato YYYY-MM-DD
 const getTodayDateString = () => {
   return new Date().toISOString().split('T')[0];
 };
 
 
 export default function HistoryScreen() {
+  const { user } = useAuth(); 
+  
   const [loading, setLoading] = useState(true);
 
-  // 4. NOVOS ESTADOS
-  // Guarda *todos* os treinos lidos do storage
   const [allWorkouts, setAllWorkouts] = useState<Workout[]>([]); 
-  // Guarda apenas os treinos do dia selecionado
   const [filteredWorkouts, setFilteredWorkouts] = useState<Workout[]>([]);
-  // Guarda a data selecionada (string YYYY-MM-DD)
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
-  // Guarda os "pontos" (marcações) do calendário
   const [markedDates, setMarkedDates] = useState<MarkedDates>({});
 
+  const loadData = useCallback(async () => {
+  if (!user || !user.uid) {
+    Alert.alert('Erro', 'Usuário não autenticado');
+    setLoading(false);
+    return;
+  }
 
-  // 5. LÓGICA DE CARREGAMENTO ATUALIZADA
-  useFocusEffect(
-    useCallback(() => {
-      const loadData = async () => {
-        setLoading(true);
+  setLoading(true);
 
-        const today = getTodayDateString();
-        setSelectedDate(today); // Define hoje como selecionado ao carregar
-        
-        const savedWorkouts = await getWorkouts();
-        setAllWorkouts(savedWorkouts); // Guarda todos os treinos
+  try {
+    const savedWorkouts = await getWorkouts(user.uid); 
+    setAllWorkouts(savedWorkouts); 
 
-        // Filtra os treinos para o dia de hoje (inicial)
-        const todayWorkouts = savedWorkouts.filter(w => w.date.startsWith(today));
-        setFilteredWorkouts(todayWorkouts.reverse());
+    // Processamento e Filtragem
+    let initialFiltered: Workout[] = [];
+    const marks: MarkedDates = {};
 
-        // Processa as datas para marcar no calendário
-        const marks: MarkedDates = {};
-        savedWorkouts.forEach(workout => {
-          const dateString = workout.date.split('T')[0]; 
-          marks[dateString] = { marked: true, dotColor: calendarTheme.dotColor };
-        });
+    savedWorkouts.forEach(workout => {
+      const dateString = workout.date.split('T')[0]; 
+      
+      if (dateString === getTodayDateString()) {
+        initialFiltered.push(workout);
+      }
 
-        // Adiciona a marcação de "selecionado" ao dia de hoje
-        marks[today] = { 
-          ...marks[today], 
-          selected: true, 
-          selectedColor: calendarTheme.selectedDayBackgroundColor 
-        };
-        
-        setMarkedDates(marks);
-        setLoading(false);
-      };
+      marks[dateString] = { marked: true, dotColor: calendarTheme.dotColor };
+    });
 
-      loadData();
-    }, [])
-  );
+    marks[getTodayDateString()] = { 
+      ...marks[getTodayDateString()], 
+      selected: true, 
+      selectedColor: calendarTheme.selectedDayBackgroundColor 
+    };
+    
+    setFilteredWorkouts(initialFiltered.reverse());
+    setMarkedDates(marks);
 
-  // 6. NOVA FUNÇÃO: Chamada ao clicar num dia
-  const handleDayPress = (day: { dateString: string }) => {
+  } catch (e) {
+    console.error('Erro ao carregar dados do histórico: ', e);
+    Alert.alert('Erro', 'Não foi possível carregar o histórico de treinos.');
+  } finally {
+    setLoading(false);
+  }
+}, [user]); // Recarrega se o objeto user mudar (ex: login/logout)
+
+  useFocusEffect(() => {
+    loadData();
+  }); 
+
+
+  // 5. FUNÇÃO: Chamada ao clicar num dia
+  const handleDayPress = (day: DateData) => {
+    // Validação Defensiva Rápida
+    if (!calendarTheme) return; 
+
     const { dateString } = day;
 
-    // Atualiza o dia selecionado
     setSelectedDate(dateString);
-
-    // Filtra a lista de treinos para esse dia
     const newFilteredWorkouts = allWorkouts.filter(w => w.date.startsWith(dateString));
     setFilteredWorkouts(newFilteredWorkouts.reverse());
 
-    // Atualiza as marcações (pontos) para mostrar o novo dia selecionado
     const newMarks: MarkedDates = {};
     allWorkouts.forEach(workout => {
       const dString = workout.date.split('T')[0]; 
@@ -112,32 +126,27 @@ export default function HistoryScreen() {
   };
 
 
-// 7. RENDERIZAÇÃO DO ITEM (COM DATA E HORA)
+// 6. RENDERIZAÇÃO DO ITEM
   const renderWorkoutItem = ({ item }: { item: Workout }) => {
     
-    // Criamos um objeto Date a partir da string do storage
     const workoutDate = new Date(item.date);
 
-    // Formatamos a parte da DATA (ex: "22 de outubro de 2025")
+    const timePart = workoutDate.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false, 
+    });
+
     const datePart = workoutDate.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'short',
       year: '2-digit',
     });
 
-    // Formatamos a parte da HORA (ex: "15:30")
-    const timePart = workoutDate.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false, // Formato 24h
-    });
-
-    // Criamos a string final que você pediu
     const fullDateString = `${datePart}, às ${timePart}:`;
 
     return (
       <View style={styles.workoutCard}>
-        {/* Usamos a nova string formatada aqui */}
         <Text style={styles.workoutDate}>
           {fullDateString}
         </Text>
@@ -156,7 +165,7 @@ export default function HistoryScreen() {
     );
   };
 
-  // Ecrã de loading (sem mudanças)
+  // 7. Ecrã de loading
   if (loading) {
     return (
       <ScreenBackground>
@@ -170,37 +179,39 @@ export default function HistoryScreen() {
   // 8. RENDERIZAÇÃO PRINCIPAL
   return (
     <ScreenBackground>
-      {/* Usamos FlatList como o componente raiz (sem View) 
-        para que tudo (título, calendário, lista) role junto.
-      */}
-      <FlatList
-        data={filteredWorkouts} // <-- USA A LISTA FILTRADA
-        keyExtractor={(item) => item.id}
-        renderItem={renderWorkoutItem}
-        contentContainerStyle={styles.listContainer}
+      {/* Container principal para o FlatList */}
+      <View style={styles.container}> 
+        <FlatList
+          data={filteredWorkouts} 
+          keyExtractor={(item) => item.id}
+          renderItem={renderWorkoutItem}
+          contentContainerStyle={styles.listContainer}
 
-        // --- CABEÇALHO DA LISTA ---
-        ListHeaderComponent={
-          <>
-            <Text style={styles.screenTitle}>
-              Seu histórico de treinos:
-            </Text>
+          // --- CABEÇALHO DA LISTA ---
+          ListHeaderComponent={
+            <>
+              <Text style={styles.screenTitle}>
+                {selectedDate === getTodayDateString() ? 'Treinos de Hoje:' : `Treinos em: ${selectedDate}`}
+              </Text>
 
-            <Calendar
-              theme={calendarTheme}
-              onDayPress={handleDayPress}
-              markedDates={markedDates}
-              current={selectedDate} // Garante que o calendário mostre o mês selecionado
-            />
-          </>
-        }
+              <Calendar
+                theme={calendarTheme}
+                onDayPress={handleDayPress}
+                markedDates={markedDates}
+                current={selectedDate} // Garante que o calendário mostre o mês selecionado
+                enableSwipeMonths={true}
+                hideExtraDays={true}
+              />
+            </>
+          }
 
-        ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={styles.emptyText}>Nenhum treino registrado para este dia.</Text>
-          </View>
-        }
-      />
+          ListEmptyComponent={
+            <View style={styles.center}>
+              <Text style={styles.emptyText}>Nenhum treino registrado para este dia.</Text>
+            </View>
+          }
+        />
+      </View>
     </ScreenBackground>
   );
 }

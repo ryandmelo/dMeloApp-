@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { 
   View, 
   Text, 
+  StyleSheet, 
   ScrollView, 
   Alert, 
   TextInput,
@@ -10,10 +11,12 @@ import {
 import { useRouter } from 'expo-router';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import ScreenBackground from '../../components/ScreenBackground'; 
-import { saveWorkout } from '../../services/storage';
+import ScreenBackground from '../../components/ScreenBackground';
+import { useAuth } from '../../context/AuthContext';
+import { saveWorkout } from '../../services/storage'; // Já foi atualizado para Firestore
 import { Exercise, Set } from '../../types';
-import { styles } from './stylesIndex'; //ESTILOS
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import styles from '../../styles/stylesIndex';
 
 export default function WorkoutScreen() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -23,6 +26,8 @@ export default function WorkoutScreen() {
   const [editedName, setEditedName] = useState('');
 
   const router = useRouter();
+  const { signOut, user } = useAuth(); // <-- ATUALIZADO: Obtém o user
+  const insets = useSafeAreaInsets();
 
   const handleAddExercise = () => {
     if (currentExercise.trim() === '') return;
@@ -30,7 +35,7 @@ export default function WorkoutScreen() {
       ...exercises,
       { name: currentExercise, sets: [{ reps: '', weight: '' }] },
     ]);
-    setCurrentExercise(''); 
+    setCurrentExercise('');
   };
 
   const handleAddSet = (exerciseIndex: number) => {
@@ -60,31 +65,28 @@ export default function WorkoutScreen() {
     }
   };
 
+  // FUNÇÃO DE SALVAR ATUALIZADA PARA USAR FIRESTORE E UID
   const handleSaveWorkout = async () => {
+    if (!user || !user.uid) { // Validação de segurança
+        Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
+        return;
+    }
+    
     if (exercises.length === 0) {
       Alert.alert('Erro', 'Adicione pelo menos um exercício para salvar.');
       return;
     }
-
-    for (const exercise of exercises) {
-      for (const set of exercise.sets) {
-        if (set.reps.trim() === '' || set.weight.trim() === '') {
-          Alert.alert(
-            'Campos Obrigatórios',
-            `Por favor, preencha todos os campos de "Repetições" e "Kg" para o exercício "${exercise.name}".`
-          );
-          return; 
-        }
-      }
-    }
-
+    
     const workout = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
       exercises: exercises,
     };
-    await saveWorkout(workout);
-    Alert.alert('Sucesso!', 'Treino salvo.');
+    
+    // CHAMA saveWorkout PASSANDO O UID
+    await saveWorkout(workout, user.uid); 
+    
+    Alert.alert('Sucesso!', 'Treino salvo no seu histórico pessoal.');
     setExercises([]);
     router.push('/history');
   };
@@ -112,7 +114,7 @@ export default function WorkoutScreen() {
     if (exercises[exerciseIndex].sets.length <= 1) {
       Alert.alert(
         'Ação inválida',
-        'Todo exercício deve ter pelo menos uma série.'
+        'Todo exercício deve ter pelo menos uma série. Se desejar, remova o exercício inteiro.'
       );
       return;
     }
@@ -145,11 +147,16 @@ export default function WorkoutScreen() {
 
   return (
     <ScreenBackground>
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <View style={[styles.logoutContainer, { paddingTop: insets.top + 10 }]}>
+        <Button 
+          title="Sair (Logout)" 
+          onPress={() => signOut()}
+          small 
+          style={styles.logoutButton}
+        />
+      </View>
 
-        <Text style={styles.subtitleText}>
-          Registre abaixo o seu treino de hoje!
-        </Text>
+      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         
         {exercises.map((exercise, exIndex) => (
           <View key={exIndex} style={styles.exerciseContainer}>
@@ -186,7 +193,7 @@ export default function WorkoutScreen() {
                 <Text style={styles.setText}>Série {setIndex + 1}</Text>
                 
                 <Input
-                  placeholder="Reps *"
+                  placeholder="Reps"
                   value={set.reps}
                   onChangeText={(val) => handleSetChange(exIndex, setIndex, 'reps', val)}
                   keyboardType="numeric"
@@ -194,7 +201,7 @@ export default function WorkoutScreen() {
                   placeholderTextColor="#8E8E93"
                 />
                 <Input
-                  placeholder="Kg *"
+                  placeholder="Kg"
                   value={set.weight}
                   onChangeText={(val) => handleSetChange(exIndex, setIndex, 'weight', val)}
                   keyboardType="numeric"
@@ -219,7 +226,7 @@ export default function WorkoutScreen() {
             placeholder={
               exercises.length > 0 
                 ? "Próximo exercício (ex: Agachamento)" 
-                : "Nome do Exercício (ex: Supino Reto)"
+                : "Nome do Exercício (ex: Supino)"
             }
             value={currentExercise}
             onChangeText={setCurrentExercise}

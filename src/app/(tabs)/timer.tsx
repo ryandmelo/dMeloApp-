@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Button from '../../components/Button';
 import ScreenBackground from '../../components/ScreenBackground';
-import { styles } from './stylesTimer'; // ESTILOS
+import { styles } from '../../styles/stylesTimer'; // ESTILOS
 
 const DEFAULT_TIME = 90;
 

@@ -4,15 +4,16 @@ import { Theme } from 'react-native-calendars/src/types';
 
 // Vamos definir as nossas cores principais para o tema
 const colors = {
-  background: '#000000', // Assumindo fundo preto do ScreenBackground
+  background: '#000000', 
   card: '#1C1C1E',
   text: '#FFFFFF',
-  primary: '#FFD60A', // Seu amarelo
+  primary: '#FFD60A', 
   gray: '#8E8E93',
-  disabledGray: '#444444' // Um cinza mais escuro para dias desativados
+  disabledGray: '#444444' 
 };
 
-export const styles = StyleSheet.create({
+// 1. CORREÇÃO: Removemos 'export const' e renomeamos para 'historyStyles'
+const historyStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent', 
@@ -73,17 +74,25 @@ export const styles = StyleSheet.create({
     color: '#DDD',
     fontSize: 14,
   },
-  
+  // NOVOS ESTILOS PARA UI CONTROLE (adicionei para evitar o 'loadingContainer' undefined)
+  toggleButton: {
+    marginBottom: 15, 
+    backgroundColor: colors.card,
+    width: '100%',
+  },
+  loadingIndicator: {
+    marginTop: 50,
+  },
 });
 
 // NOVO: Tema para o componente Calendário
-// 2. ADICIONAMOS O TIPO ': Theme' AQUI
+// Mantemos 'export const' porque é uma exportação nomeada (usada com chaves {calendarTheme})
 export const calendarTheme: Theme = {
   backgroundColor: colors.background,
-  calendarBackground: colors.background,
-  textSectionTitleColor: colors.gray,
+  calendarBackground: colors.card,
+  textSectionTitleColor: colors.primary, 
   selectedDayBackgroundColor: colors.primary,
-  selectedDayTextColor: colors.background, // Texto preto no dia selecionado
+  selectedDayTextColor: colors.background, 
   todayTextColor: colors.primary,
   dayTextColor: colors.text,
   textDisabledColor: colors.disabledGray,
@@ -93,7 +102,6 @@ export const calendarTheme: Theme = {
   disabledArrowColor: colors.disabledGray,
   monthTextColor: colors.text,
   indicatorColor: colors.primary,
-  // Estes são opcionais mas ajudam na consistência
   textDayFontWeight: '300',
   textMonthFontWeight: 'bold',
   textDayHeaderFontWeight: '300',
@@ -101,3 +109,5 @@ export const calendarTheme: Theme = {
   textMonthFontSize: 18,
   textDayHeaderFontSize: 14,
 };
+
+export default historyStyles;
