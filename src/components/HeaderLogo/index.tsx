@@ -5,7 +5,7 @@ export default function HeaderLogo() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../../../assets/logoo.png')}
+        source={require('../../../assets/logo_dMelo.png')}
         style={styles.logo}
         resizeMode="contain" // Garante que a logo caiba sem distorcer
       />

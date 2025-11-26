@@ -14,8 +14,7 @@ export default function ScreenBackground({ children }: Props) {
       {/* 2. O logo de fundo (posicionado de forma absoluta, por trás) */}
       <View style={styles.logoContainer}>
         <Image
-          // Caminho: ../../.. (sai de ScreenBackground, components, src)
-          source={require('../../../assets/logoo.png')}
+          source={require('../../../assets/logo_dMelo.png')}
           style={styles.logo}
           resizeMode="contain"
         />

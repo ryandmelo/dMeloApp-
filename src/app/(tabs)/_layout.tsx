@@ -1,10 +1,8 @@
-// ARQUIVO: app/(tabs)/_layout.tsx
-
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import HeaderLogo from '../../components/HeaderLogo'; 
-import HeaderSpacer from '../../components/HeaderSpacer'; // <-- MANTEMOS O SPACER
+import HeaderSpacer from '../../components/HeaderSpacer'; 
 
 export default function TabsLayout() {
   return (
@@ -17,7 +15,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: '#8E8E93',
 
         headerTitle: () => <HeaderLogo />, 
-        headerLeft: () => <HeaderSpacer />, // Mantemos o spacer para centralizar
+        headerLeft: () => <HeaderSpacer />, 
       }}
     >
       <Tabs.Screen
@@ -27,7 +25,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => (
             <Ionicons name="barbell-outline" size={24} color={color} />
           ),
-          headerLeft: () => <HeaderSpacer />, // Adiciona simetria (para o caso do timer/logout existir)
+          headerLeft: () => <HeaderSpacer />,
         }}
       />
       <Tabs.Screen
@@ -51,16 +49,27 @@ export default function TabsLayout() {
         }}
       />
       
-      {/* --- NOVO: ABA DE LOGOUT --- */}
+      {/* --- NOVO: ABA DA LOJA (ENTRE TIMER E LOGOUT) --- */}
       <Tabs.Screen
-        name="logout" // Corresponde ao arquivo logout.tsx
+        name="store" // Corresponde ao arquivo store.tsx
+        options={{
+          title: 'Loja', 
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="cart-outline" size={24} color={color} />
+          ),
+          headerLeft: () => <HeaderSpacer />,
+        }}
+      />
+      
+      {/* --- ABA DE LOGOUT (ÚLTIMA) --- */}
+      <Tabs.Screen
+        name="logout" 
         options={{
           title: 'Sair', 
           tabBarIcon: ({ color }) => (
             <Ionicons name="log-out-outline" size={24} color={color} />
           ),
-          // O header será escondido nesta tela, pois ela vai redirecionar imediatamente
-          headerShown: false, 
+          headerShown: false, // Esconde o header nesta tela
         }}
       />
     </Tabs>
