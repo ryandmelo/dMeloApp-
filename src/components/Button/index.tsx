@@ -1,33 +1,36 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps, View } from 'react-native';
 
-// Define as propriedades que o botão pode receber
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
-  primary?: boolean; // Para um botão de destaque
-  small?: boolean; // Para um botão menor
+  primary?: boolean;
+  small?: boolean;
+  // 1. NOVA PROPRIEDADE: Aceita um componente de ícone (ReactNode)
+  icon?: React.ReactNode; 
 }
 
-// Passamos 'style' como parte de ...rest para que possamos adicionar estilos externos
-export default function Button({ title, primary = false, small = false, style, ...rest }: ButtonProps) {
+export default function Button({ title, primary = false, small = false, icon, style, ...rest }: ButtonProps) {
   return (
     <TouchableOpacity
       style={[
         styles.container,
         primary ? styles.primaryContainer : styles.secondaryContainer,
         small ? styles.smallContainer : null,
-        style, // Aplica estilos passados por props
+        style, 
       ]}
+      activeOpacity={0.8}
       {...rest}
     >
-      <Text style={[styles.text, primary ? styles.primaryText : styles.secondaryText]}>
+      {/* 2. RENDERIZAÇÃO: Se houver ícone, mostra ele com uma margem */}
+      {icon && <View style={styles.iconContainer}>{icon}</View>}
+      
+      <Text style={[styles.text, primary ? styles.primaryText : styles.secondaryText, small ? styles.smallText : null]}>
         {title}
       </Text>
     </TouchableOpacity>
   );
 }
 
-// Os estilos foram movidos para cá para simplificar (você pode manter em styles.ts se preferir)
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 12,
@@ -36,25 +39,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 5,
+    minWidth: 100,
+    // 3. MUDANÇA: Organiza itens em linha (lado a lado)
+    flexDirection: 'row', 
+  },
+  iconContainer: {
+    marginRight: 10, // Espaço entre o ícone e o texto
   },
   smallContainer: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    minWidth: 80,
   },
   primaryContainer: {
-    backgroundColor: '#FFD60A', // Cor principal (amarelo)
+    backgroundColor: '#FFD60A', 
   },
   secondaryContainer: {
-    backgroundColor: '#2C2C2E', // Cor secundária
+    backgroundColor: '#2C2C2E', 
   },
   text: {
     fontSize: 16,
     fontWeight: 'bold',
   },
+  smallText: {
+    fontSize: 14,
+  },
   primaryText: {
-    color: '#000',
+    color: '#000', 
   },
   secondaryText: {
-    color: '#FFF',
+    color: '#FFF', 
   },
 });

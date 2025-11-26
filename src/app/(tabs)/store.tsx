@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert, ActivityIndicator } from 'react-native';
-// 1. MUDANÇA NO IMPORT: Trocamos updateDoc por setDoc
+import { View, Text, ScrollView, Alert, ActivityIndicator, Linking } from 'react-native';
+import { useRouter } from 'expo-router'; 
 import { doc, setDoc } from 'firebase/firestore'; 
 import { db } from '../../services/firebaseConfig';
 import ScreenBackground from '../../components/ScreenBackground';
@@ -8,29 +8,23 @@ import Button from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import styles from '../../styles/stylesStore'; 
 
+// 1. IMPORTAR OS ÍCONES
+import { Ionicons, FontAwesome } from '@expo/vector-icons';
+
 export default function StoreScreen() {
     const { user, isPremium, refreshProfile } = useAuth(); 
     const [purchasing, setPurchasing] = useState(false);
+    const router = useRouter(); 
 
     const handleSimulatePurchase = async () => {
         if (!user) return;
         setPurchasing(true);
-        
         try {
             await new Promise(resolve => setTimeout(resolve, 1000)); 
-
             const userRef = doc(db, "users", user.uid);
-            
-            // 2. CORREÇÃO: Usamos setDoc com merge: true
-            // Isso cria o documento se ele não existir, ou atualiza se já existir.
-            await setDoc(userRef, {
-                isPremium: true,
-                email: user.email // Garante que o email fique salvo também se for um doc novo
-            }, { merge: true });
-
+            await setDoc(userRef, { isPremium: true, email: user.email }, { merge: true });
             await refreshProfile();
             Alert.alert("Sucesso!", "Compra simulada com sucesso. Você agora é Premium!");
-
         } catch (error) {
             console.error(error);
             Alert.alert("Erro", "Falha ao simular compra.");
@@ -44,20 +38,47 @@ export default function StoreScreen() {
         setPurchasing(true);
         try {
             const userRef = doc(db, "users", user.uid);
-            
-            // 3. CORREÇÃO: Também usamos setDoc aqui para evitar erros
-            await setDoc(userRef, { 
-                isPremium: false 
-            }, { merge: true });
-            
+            await setDoc(userRef, { isPremium: false }, { merge: true });
             await refreshProfile();
             Alert.alert("Cancelado", "Sua assinatura foi removida (Teste).");
         } catch (error) {
             console.error(error);
-            Alert.alert("Erro", "Falha ao cancelar.");
         } finally {
             setPurchasing(false);
         }
+    };
+
+    const handleViewCoupons = () => {
+        if (isPremium) {
+            router.push('/coupons');
+        } else {
+            showRestrictedAlert("Cupons disponíveis apenas para assinantes VIP.");
+        }
+    };
+
+    const handleSupport = () => {
+        if (isPremium) {
+            const phone = "+5582993763399";
+            const message = "Preciso de ajuda com o suporte prioritário.";
+            const url = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+            
+            Linking.openURL(url).catch(() => {
+                Alert.alert("Erro", "Não foi possível abrir o WhatsApp.");
+            });
+        } else {
+            showRestrictedAlert("Suporte prioritário via WhatsApp disponível apenas para assinantes VIP.");
+        }
+    };
+
+    const showRestrictedAlert = (message: string) => {
+        Alert.alert(
+            "Acesso Restrito",
+            message,
+            [
+                { text: "Voltar", style: "cancel" },
+                { text: "Ok", style: "default" }
+            ]
+        );
     };
 
     return (
@@ -69,7 +90,7 @@ export default function StoreScreen() {
                     <View style={[styles.card, { borderColor: '#FFD60A' }]}>
                         <Text style={styles.cardTitle}>Membro VIP 👑</Text>
                         <Text style={styles.description}>
-                            Sua assinatura está ativa. Aproveite todos os benefícios!
+                            Sua assinatura está ativa.
                         </Text>
                         <Button 
                             title="Cancelar Assinatura (Teste)" 
@@ -101,6 +122,25 @@ export default function StoreScreen() {
                         <Text style={styles.note}>* Modo de Teste: Nenhuma cobrança será feita.</Text>
                     </View>
                 )}
+
+                {/* 2. BOTÃO DE CUPONS COM ÍCONE */}
+                <Button 
+                    title="Ver Cupons de Parceiros" 
+                    onPress={handleViewCoupons} 
+                    style={styles.couponButton} 
+                    // Ícone de Ticket Amarelo
+                    icon={<Ionicons name="pricetag-outline" size={20} color="#FFD60A" />}
+                />
+
+                {/* 3. BOTÃO DE SUPORTE COM ÍCONE WHATSAPP */}
+                <Button 
+                    title="Suporte Prioritário" 
+                    onPress={handleSupport} 
+                    style={styles.supportButton} 
+                    // Ícone do WhatsApp Verde
+                    icon={<FontAwesome name="whatsapp" size={22} color="#25D366" />}
+                />
+
             </ScrollView>
         </ScreenBackground>
     );

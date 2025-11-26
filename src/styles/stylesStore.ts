@@ -50,6 +50,20 @@ const styles = StyleSheet.create({
         color: '#8E8E93', 
         fontSize: 12, 
         marginTop: 15 
+    },
+    couponButton: {
+        marginTop: 20,
+        width: '90%', 
+        backgroundColor: 'transparent', 
+        borderWidth: 1,
+        borderColor: '#FFD60A', 
+    },
+    supportButton: {
+        marginTop: 10, 
+        width: '90%',
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        borderColor: '#25D366', 
     }
 });
 
