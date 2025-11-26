@@ -13,7 +13,7 @@ import Input from '../../components/Input';
 import Button from '../../components/Button';
 import ScreenBackground from '../../components/ScreenBackground';
 import { useAuth } from '../../context/AuthContext';
-import { saveWorkout } from '../../services/storage'; // Já foi atualizado para Firestore
+import { saveWorkout } from '../../services/storage'; 
 import { Exercise, Set } from '../../types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import styles from '../../styles/stylesIndex';
@@ -26,8 +26,18 @@ export default function WorkoutScreen() {
   const [editedName, setEditedName] = useState('');
 
   const router = useRouter();
-  const { signOut, user } = useAuth(); // <-- ATUALIZADO: Obtém o user
+  const { signOut, user } = useAuth(); 
   const insets = useSafeAreaInsets();
+
+  // --- FUNÇÃO DE LOGOUT FORÇADO (NOVA) ---
+  const handleLogout = async () => {
+    // 1. Executa o logout do Firebase (limpa o token)
+    await signOut(); 
+    
+    // 2. FORÇA O RESET DA PILHA para a tela de login.
+    router.replace('/(auth)/login'); 
+  };
+  // ----------------------------------------
 
   const handleAddExercise = () => {
     if (currentExercise.trim() === '') return;
@@ -147,15 +157,6 @@ export default function WorkoutScreen() {
 
   return (
     <ScreenBackground>
-      <View style={[styles.logoutContainer, { paddingTop: insets.top + 10 }]}>
-        <Button 
-          title="Sair (Logout)" 
-          onPress={() => signOut()}
-          small 
-          style={styles.logoutButton}
-        />
-      </View>
-
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         
         {exercises.map((exercise, exIndex) => (

@@ -9,21 +9,6 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 50,
   },
-  // NOVOS ESTILOS PARA O LOGOUT
-  logoutContainer: {
-    width: '100%',
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    backgroundColor: '#1C1C1E',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2C2C2E',
-    alignItems: 'flex-end',
-  },
-  logoutButton: {
-    backgroundColor: '#3A3A3C',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-  },
   // ESTILOS DA TELA DE TREINO
   addExerciseContainer: {
     backgroundColor: '#1C1C1E',
@@ -98,5 +83,4 @@ const styles = StyleSheet.create({
   },
 });
 
-// ESTA LINHA É ESSENCIAL para que o 'import styles...' funcione!
 export default styles;
