@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
   ScrollView, 
   Alert, 
   TextInput,
@@ -14,8 +13,8 @@ import Button from '../../components/Button';
 import ScreenBackground from '../../components/ScreenBackground';
 import { useAuth } from '../../context/AuthContext';
 import { saveWorkout } from '../../services/storage'; 
-import { Exercise, Set } from '../../types';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Exercise } from '../../types';
+// import { useSafeAreaInsets } from 'react-native-safe-area-context'; // <-- NÃO PRECISA MAIS
 import styles from '../../styles/stylesIndex';
 
 export default function WorkoutScreen() {
@@ -26,18 +25,8 @@ export default function WorkoutScreen() {
   const [editedName, setEditedName] = useState('');
 
   const router = useRouter();
-  const { signOut, user } = useAuth(); 
-  const insets = useSafeAreaInsets();
-
-  // --- FUNÇÃO DE LOGOUT FORÇADO (NOVA) ---
-  const handleLogout = async () => {
-    // 1. Executa o logout do Firebase (limpa o token)
-    await signOut(); 
-    
-    // 2. FORÇA O RESET DA PILHA para a tela de login.
-    router.replace('/(auth)/login'); 
-  };
-  // ----------------------------------------
+  const { user, userData } = useAuth(); 
+  // const insets = useSafeAreaInsets(); // <-- NÃO PRECISA MAIS
 
   const handleAddExercise = () => {
     if (currentExercise.trim() === '') return;
@@ -75,9 +64,8 @@ export default function WorkoutScreen() {
     }
   };
 
-  // FUNÇÃO DE SALVAR ATUALIZADA PARA USAR FIRESTORE E UID
   const handleSaveWorkout = async () => {
-    if (!user || !user.uid) { // Validação de segurança
+    if (!user || !user.uid) { 
         Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
         return;
     }
@@ -93,7 +81,6 @@ export default function WorkoutScreen() {
       exercises: exercises,
     };
     
-    // CHAMA saveWorkout PASSANDO O UID
     await saveWorkout(workout, user.uid); 
     
     Alert.alert('Sucesso!', 'Treino salvo no seu histórico pessoal.');
@@ -157,8 +144,50 @@ export default function WorkoutScreen() {
 
   return (
     <ScreenBackground>
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      
+      {/* CORREÇÃO 1: Removemos a View "absolute" que estava aqui */}
+
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={styles.contentContainer} // CORREÇÃO 2: Removemos o paddingTop extra
+      >
         
+        {/* CORREÇÃO 3: Colocamos a saudação AQUI DENTRO para controlar o espaço */}
+        <View style={{ 
+            alignItems: 'center', 
+            marginTop: 0, // <-- Ajuste isso para aproximar/afastar do Topo (Logo)
+            marginBottom: 8, // <-- Ajuste isso para afastar dos Inputs
+        }}>
+            {userData?.name && (
+                <Text style={{ color: '#FFD60A', fontSize: 20, fontWeight: 'bold' }}>
+                    Olá, {userData.name}
+                </Text>
+            )}
+        </View>
+
+        {/* --- BLOCO DE ADICIONAR EXERCÍCIO (Inverti a ordem para ficar igual sua foto) --- */}
+        {/* Se você quer que o campo de adicionar venha ANTES da lista, mantenha aqui.
+            Se preferir a lista antes, mova este bloco para baixo. 
+            Na sua foto, o campo de adicionar está no topo. */}
+        
+        <View style={styles.addExerciseContainer}>
+          <Input
+            placeholder={
+              exercises.length > 0 
+                ? "Próximo exercício (ex: Agachamento)" 
+                : "Nome do Exercício (ex: Supino)"
+            }
+            value={currentExercise}
+            onChangeText={setCurrentExercise}
+            placeholderTextColor="#8E8E93"
+          />
+          <Button 
+            title={exercises.length > 0 ? "Adicionar Outro Exercício" : "Adicionar Exercício"} 
+            onPress={handleAddExercise} 
+          />
+        </View>
+
+        {/* --- LISTA DE EXERCÍCIOS ADICIONADOS --- */}
         {exercises.map((exercise, exIndex) => (
           <View key={exIndex} style={styles.exerciseContainer}>
             
@@ -221,23 +250,6 @@ export default function WorkoutScreen() {
             <Button title="Adicionar Série" onPress={() => handleAddSet(exIndex)} small />
           </View>
         ))}
-
-        <View style={styles.addExerciseContainer}>
-          <Input
-            placeholder={
-              exercises.length > 0 
-                ? "Próximo exercício (ex: Agachamento)" 
-                : "Nome do Exercício (ex: Supino)"
-            }
-            value={currentExercise}
-            onChangeText={setCurrentExercise}
-            placeholderTextColor="#8E8E93"
-          />
-          <Button 
-            title={exercises.length > 0 ? "Adicionar Outro Exercício" : "Adicionar Exercício"} 
-            onPress={handleAddExercise} 
-          />
-        </View>
 
         {exercises.length > 0 && (
           <Button 

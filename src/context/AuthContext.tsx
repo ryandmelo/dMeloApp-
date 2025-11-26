@@ -3,34 +3,42 @@ import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEma
 import { doc, getDoc, setDoc } from 'firebase/firestore'; 
 import { auth, db } from '../services/firebaseConfig'; 
 
+// Define o formato dos dados do usuário no banco
+type UserData = {
+  name: string;
+  email: string;
+  isPremium: boolean;
+};
+
 interface AuthContextType {
   user: User | null;
+  userData: UserData | null; // <-- NOVO: Guarda os dados completos (nome, etc)
   isAuthenticated: boolean;
-  isPremium: boolean; 
+  isPremium: boolean; // Mantemos para facilitar o uso na Loja
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<void>; // <-- ATUALIZADO: Recebe nome
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>; // FUNÇÃO recarregar status premium
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isPremium, setIsPremium] = useState(false); // <-- ESTADO PREMIUM
+  const [userData, setUserData] = useState<UserData | null>(null); // <-- ESTADO DOS DADOS
   const [isLoading, setIsLoading] = useState(true);
 
+  // Busca os dados do usuário (Nome + Premium) no Firestore
   const fetchUserData = async (uid: string) => {
     try {
       const docRef = doc(db, "users", uid);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        const data = docSnap.data();
-        setIsPremium(data.isPremium || false); // Lê se é premium
+        setUserData(docSnap.data() as UserData);
       } else {
-        setIsPremium(false);
+        setUserData(null);
       }
     } catch (error) {
       console.log("Erro ao buscar perfil:", error);
@@ -44,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (firebaseUser) {
         await fetchUserData(firebaseUser.uid);
       } else {
-        setIsPremium(false);
+        setUserData(null);
       }
       
       setIsLoading(false); 
@@ -57,30 +65,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const signUp = async (email: string, password: string) => {
+  // ATUALIZADO: Recebe 'name' e salva no Firestore
+  const signUp = async (name: string, email: string, password: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    // Ao criar conta, cria também o documento no Firestore com premium false
+    
+    // Cria o documento do usuário com o Nome e Premium false
     await setDoc(doc(db, "users", userCredential.user.uid), {
+        name: name,
         email: email,
         isPremium: false,
         createdAt: new Date().toISOString()
     });
+    
+    // Atualiza o estado local imediatamente
+    setUserData({ name, email, isPremium: false });
   };
 
   const signOut = async () => {
     await auth.signOut();
-    setIsPremium(false);
+    setUserData(null);
   };
 
-  // Função para forçar a atualização (usada após a "compra")
   const refreshProfile = async () => {
     if (user) await fetchUserData(user.uid);
   };
 
   const isAuthenticated = !!user;
+  // Deriva o isPremium do userData para manter compatibilidade com a tela da Loja
+  const isPremium = userData?.isPremium || false;
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isPremium, isLoading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, userData, isAuthenticated, isPremium, isLoading, signIn, signUp, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

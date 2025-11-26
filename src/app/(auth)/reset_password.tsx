@@ -1,44 +1,85 @@
 import React, { useState } from 'react';
-import { Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { Text, ScrollView, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { sendPasswordResetEmail } from 'firebase/auth'; // Função do Firebase
-import { auth } from '../../services/firebaseConfig'; // Nossa instância auth
+import { sendPasswordResetEmail } from 'firebase/auth'; 
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { auth, db } from '../../services/firebaseConfig'; 
 
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import ScreenBackground from '../../components/ScreenBackground';
-import styles from '../../styles/stylesLogin'; // Reusamos o estilo do login
+import styles from '../../styles/stylesLogin'; 
 
 export default function ResetPasswordScreen() {
   const [email, setEmail] = useState('');
+  const [name, setName] = useState(''); 
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleReset = async () => {
-    if (!email.trim()) {
-      Alert.alert('Erro', 'Por favor, digite seu e-mail.');
+    // 1. Validação básica dos campos
+    if (!email.trim() || !name.trim()) {
+      Alert.alert('Erro', 'Por favor, preencha seu Nome e E-mail.');
       return;
     }
 
     setLoading(true);
 
     try {
-      // Envia o e-mail de redefinição
+      // 2. Busca o usuário no Firestore pelo E-mail
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("email", "==", email));
+      const querySnapshot = await getDocs(q);
+
+      // Se não achou o e-mail no banco
+      if (querySnapshot.empty) {
+        Alert.alert('Erro', 'Nenhuma conta encontrada com este e-mail.');
+        setLoading(false);
+        return;
+      }
+
+      // 3. Validação de Segurança: O Nome confere?
+      const userData = querySnapshot.docs[0].data();
+      const dbName = userData.name ? userData.name.toLowerCase().trim() : '';
+      const inputName = name.toLowerCase().trim();
+
+      // Se o nome não bater, bloqueia o envio
+      if (dbName !== inputName) {
+         Alert.alert('Acesso Negado', 'O nome informado não confere com o cadastro deste e-mail.');
+         setLoading(false);
+         return;
+      }
+
+      // 4. Se validou tudo, envia o e-mail oficial do Firebase
       await sendPasswordResetEmail(auth, email);
       
       Alert.alert(
-        'E-mail Enviado!', 
-        'Verifique sua caixa de entrada (e spam) para redefinir sua senha.',
+        'Sucesso!', 
+        'Um link para criar sua nova senha foi enviado para seu e-mail. Verifique sua caixa de entrada e spam.',
         [
-            { text: "Voltar ao Login", onPress: () => router.back() }
+            { text: "Voltar para Login", onPress: () => router.back() }
         ]
       );
+
     } catch (error: any) {
-      let msg = "Não foi possível enviar o e-mail.";
-      if (error.code === 'auth/user-not-found') msg = "Usuário não encontrado.";
-      if (error.code === 'auth/invalid-email') msg = "E-mail inválido.";
+      console.log("Erro no reset:", error);
       
-      Alert.alert('Erro', msg);
+      // Tratamento se as regras do Firestore impedirem a leitura (Fallback de segurança)
+      if (error.code === 'permission-denied' || error.code === 'firestore/permission-denied') {
+          // Tenta enviar mesmo assim, o Auth do Firebase fará a segurança final
+          sendPasswordResetEmail(auth, email)
+            .then(() => {
+                Alert.alert('Aviso', 'Não conseguimos validar seu nome devido à segurança, mas enviamos o link para o e-mail se ele for válido.');
+                router.back();
+            })
+            .catch(() => Alert.alert('Erro', 'E-mail inválido ou inexistente.'));
+      } 
+      else if (error.code === 'auth/invalid-email') {
+          Alert.alert('Erro', 'Formato de e-mail inválido.');
+      } 
+      else {
+          Alert.alert('Erro', 'Não foi possível processar a solicitação.');
+      }
     } finally {
       setLoading(false);
     }
@@ -49,8 +90,16 @@ export default function ResetPasswordScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Recuperar Senha</Text>
         <Text style={styles.subtitle}>
-          Digite seu e-mail para receber o link de redefinição.
+          Confirme seus dados de segurança para receber o link de alteração.
         </Text>
+
+        <Input
+          placeholder="Seu Nome Completo"
+          value={name}
+          onChangeText={setName}
+          autoCapitalize="words"
+          placeholderTextColor="#8E8E93"
+        />
 
         <Input
           placeholder="Seu E-mail cadastrado"
@@ -62,7 +111,7 @@ export default function ResetPasswordScreen() {
         />
 
         <Button 
-          title="Enviar E-mail" 
+          title="Validar e Enviar Link" 
           onPress={handleReset} 
           primary 
           disabled={loading}

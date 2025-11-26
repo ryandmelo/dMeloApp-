@@ -7,9 +7,12 @@ import ScreenBackground from '../../components/ScreenBackground';
 import { useAuth } from '../../context/AuthContext'; 
 import { FirebaseError } from 'firebase/app'; 
 import styles from '../../styles/stylesLogin'; 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// O AsyncStorage não é mais necessário aqui diretamente, pois o AuthContext cuida disso, 
+// mas se tiver o botão de Hard Reset, mantenha. Se não, pode remover.
 
 export default function LoginScreen() {
+  // 1. NOVO ESTADO: Nome do usuário
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSigningUp, setIsSigningUp] = useState(false);
@@ -20,14 +23,21 @@ export default function LoginScreen() {
   const router = useRouter(); 
 
   const handleAuth = async () => {
+    // Validação básica de campos comuns
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Erro', 'Preencha todos os campos.');
+      Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
       return;
     }
     
+    // Validações Específicas de Cadastro
     if (isSigningUp) {
+        // 2. VALIDAÇÃO: O nome é obrigatório no cadastro
+        if (!name.trim()) {
+            Alert.alert('Erro', 'Por favor, digite seu nome.');
+            return;
+        }
         if (password !== confirmPassword) {
-            Alert.alert('Erro', 'As senhas digitadas não coincidem. Por favor, verifique.');
+            Alert.alert('Erro', 'As senhas digitadas não coincidem.');
             setLoading(false);
             return;
         }
@@ -41,14 +51,14 @@ export default function LoginScreen() {
     
     try {        
         if (isSigningUp) {
-            await signUp(email, password);
+            // 3. CHAMADA ATUALIZADA: Passamos o 'name' para a função signUp
+            await signUp(name, email, password);
+            Alert.alert('Sucesso', 'Conta criada e login efetuado!');
         } else {
             await signIn(email, password);
         }
-        if (isSigningUp) {
-            Alert.alert('Sucesso', 'Conta criada e login efetuado!');
-        }
         
+        // Força o redirecionamento
         router.replace('/(tabs)'); 
 
     } catch (error: any) {
@@ -58,7 +68,8 @@ export default function LoginScreen() {
             switch (error.code) {
                 case 'auth/user-not-found':
                 case 'auth/wrong-password':
-                    errorMessage = "Credenciais inválidas. Verifique seu e-mail e senha.";
+                case 'auth/invalid-credential': // Novo código de erro comum
+                    errorMessage = "Email ou senha incorretos.";
                     break;
                 case 'auth/email-already-in-use':
                     errorMessage = "Este e-mail já está em uso. Tente fazer o login.";
@@ -82,6 +93,17 @@ export default function LoginScreen() {
         <Text style={styles.subtitle}>
           {isSigningUp ? 'Crie sua conta' : 'Acesse sua conta'}
         </Text>
+
+        {/* 4. NOVO INPUT: Nome (Só aparece no modo Cadastro) */}
+        {isSigningUp && (
+            <Input
+                placeholder="Seu Nome"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words" // Capitaliza a primeira letra de cada palavra
+                placeholderTextColor="#8E8E93"
+            />
+        )}
 
         <Input
           placeholder="Email"
@@ -109,7 +131,6 @@ export default function LoginScreen() {
             />
         )}
 
-
         <View style={styles.buttonGroup}>
           <Button 
             title={isSigningUp ? 'Cadastrar' : 'Entrar'} 
@@ -120,7 +141,6 @@ export default function LoginScreen() {
           {loading && <ActivityIndicator style={styles.loading} size="small" color="#FFD60A" />}
         </View>
 
-        {/* Botão de Alternar Login/Cadastro */}
         <TouchableOpacity onPress={() => setIsSigningUp(!isSigningUp)}>
           <Text style={styles.toggleText}>
             {isSigningUp 
@@ -129,8 +149,7 @@ export default function LoginScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* --- NOVO: BOTÃO "ESQUECEU A SENHA" --- */}
-        {/* Aparece apenas se NÃO estiver na tela de cadastro */}
+        {/* Botão "Esqueceu a senha" (Apenas no Login) */}
         {!isSigningUp && (
             <TouchableOpacity 
                 style={styles.forgotButton} 
