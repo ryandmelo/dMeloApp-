@@ -1,8 +1,7 @@
 import { StyleSheet } from 'react-native';
-// 1. IMPORTAMOS O TIPO 'Theme' DA BIBLIOTECA
 import { Theme } from 'react-native-calendars/src/types';
 
-// Vamos definir as nossas cores principais para o tema
+// Cores do tema
 const colors = {
   background: '#000000', 
   card: '#1C1C1E',
@@ -12,11 +11,17 @@ const colors = {
   disabledGray: '#444444' 
 };
 
-// 1. CORREÇÃO: Removemos 'export const' e renomeamos para 'historyStyles'
+// Definição dos estilos visuais
 const historyStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent', 
+  },
+  // Estilo para o container de carregamento (previne erro undefined)
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   center: {
     flex: 1, 
@@ -36,17 +41,17 @@ const historyStyles = StyleSheet.create({
     textAlign: 'center',
     paddingTop: 20,
   },
-  listTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.primary,
-    marginLeft: 20,
-    marginBottom: 10,
+  // --- ESPAÇADOR DO CALENDÁRIO ---
+  calendarSpacer: {
+    height: 30, // Ajuste este valor para aumentar/diminuir a distância
+    backgroundColor: 'transparent',
   },
+  // -------------------------------
   emptyText: {
     color: colors.gray,
     fontSize: 18,
     textAlign: 'center',
+    marginTop: 50,
   },
   workoutCard: {
     backgroundColor: colors.card,
@@ -74,19 +79,9 @@ const historyStyles = StyleSheet.create({
     color: '#DDD',
     fontSize: 14,
   },
-  // NOVOS ESTILOS PARA UI CONTROLE (adicionei para evitar o 'loadingContainer' undefined)
-  toggleButton: {
-    marginBottom: 15, 
-    backgroundColor: colors.card,
-    width: '100%',
-  },
-  loadingIndicator: {
-    marginTop: 50,
-  },
 });
 
-// NOVO: Tema para o componente Calendário
-// Mantemos 'export const' porque é uma exportação nomeada (usada com chaves {calendarTheme})
+// Definição do Tema do Calendário
 export const calendarTheme: Theme = {
   backgroundColor: colors.background,
   calendarBackground: colors.card,
@@ -110,4 +105,5 @@ export const calendarTheme: Theme = {
   textDayHeaderFontSize: 14,
 };
 
+// Exportação Padrão
 export default historyStyles;

@@ -33,6 +33,15 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 14,
   },
+  forgotButton: {
+    marginTop: 15,
+    padding: 5,
+  },
+  forgotText: {
+    color: '#FFD60A', 
+    fontSize: 14,
+    textDecorationLine: 'underline', 
+  }
 });
 
 // Exporta por padrão para que o login.tsx possa importá-lo

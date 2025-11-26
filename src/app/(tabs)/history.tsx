@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -8,15 +8,18 @@ import {
   StyleSheet
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+
+// Importações
 import { Calendar, LocaleConfig, DateData } from 'react-native-calendars';
 import { getWorkouts } from '../../services/storage';
 import { Workout } from '../../types';
 import ScreenBackground from '../../components/ScreenBackground'; 
-import Button from '../../components/Button'; 
 import { useAuth } from '../../context/AuthContext'; 
-import styles from '../../styles/stylesHistory'; 
-import { calendarTheme } from '../../styles/stylesHistory';
 
+// Importação dos estilos (Sem a extensão .ts, já que funcionou para você)
+import styles, { calendarTheme } from '../../styles/stylesHistory'; 
+
+// Definição local de tipos
 type MarkedDates = {
   [date: string]: {
     marked?: boolean;
@@ -26,6 +29,7 @@ type MarkedDates = {
   };
 };
 
+// Configuração Locale
 LocaleConfig.locales['pt-br'] = {
   monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
   monthNamesShort: ['Jan.','Fev.','Mar.','Abr.','Mai.','Jun.','Jul.','Ago.','Set.','Out.','Nov.','Dez.'],
@@ -39,61 +43,66 @@ const getTodayDateString = () => {
   return new Date().toISOString().split('T')[0];
 };
 
-
 export default function HistoryScreen() {
   const { user } = useAuth(); 
-  
   const [loading, setLoading] = useState(true);
 
+  // Estados de Dados
   const [allWorkouts, setAllWorkouts] = useState<Workout[]>([]); 
-  const [filteredWorkouts, setFilteredWorkouts] = useState<Workout[]>([]);
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
-  const [markedDates, setMarkedDates] = useState<MarkedDates>({});
 
-  // FUNÇÃO DE CARREGAMENTO
+  // --- DADOS DERIVADOS (Otimização com useMemo) ---
+  
+  // 1. Lista Filtrada: Atualiza automaticamente
+  const filteredWorkouts = useMemo(() => {
+    return allWorkouts
+      .filter(w => w.date.split('T')[0] === selectedDate)
+      .reverse();
+  }, [allWorkouts, selectedDate]);
+
+  // 2. Marcas do Calendário: Atualiza automaticamente
+  const markedDates = useMemo(() => {
+    const marks: MarkedDates = {};
+    const dotColor = calendarTheme?.dotColor || '#FFD60A';
+    const selectedBg = calendarTheme?.selectedDayBackgroundColor || '#FFD60A';
+
+    // Marca dias com treino
+    allWorkouts.forEach(workout => {
+      const dateString = workout.date.split('T')[0]; 
+      marks[dateString] = { marked: true, dotColor: dotColor };
+    });
+
+    // Marca dia selecionado
+    marks[selectedDate] = { 
+      ...(marks[selectedDate] || {}), 
+      selected: true, 
+      selectedColor: selectedBg 
+    };
+
+    return marks;
+  }, [allWorkouts, selectedDate]);
+
+
+  // --- CARREGAMENTO ---
   const loadData = useCallback(async () => {
-    if (!user || !user.uid || !calendarTheme) {
+    if (!user || !user.uid) {
         setLoading(false);
         return;
     }
-
+    
     setLoading(true);
 
     try {
-        const today = getTodayDateString();
-        
+        // Busca tudo de uma vez
         const savedWorkouts = await getWorkouts(user.uid); 
         setAllWorkouts(savedWorkouts); 
-
-        let initialFiltered: Workout[] = [];
-        const marks: MarkedDates = {};
-
-        savedWorkouts.forEach(workout => {
-          const dateString = workout.date.split('T')[0]; 
-          
-          if (dateString === selectedDate) { // Usa a data selecionada (que é 'hoje' na primeira renderização)
-            initialFiltered.push(workout);
-          }
-
-          marks[dateString] = { marked: true, dotColor: calendarTheme.dotColor };
-        });
-
-        marks[selectedDate] = { 
-          ...marks[selectedDate], 
-          selected: true, 
-          selectedColor: calendarTheme.selectedDayBackgroundColor 
-        };
-        
-        setFilteredWorkouts(initialFiltered.reverse());
-        setMarkedDates(marks);
-
-    } catch (e) {
-      console.error('Erro ao carregar dados do histórico: ', e);
-      Alert.alert('Erro', 'Não foi possível carregar o histórico de treinos.');
+    } catch(e) {
+        console.error("Erro ao carregar dados: ", e);
+        Alert.alert("Erro", "Não foi possível carregar o histórico.");
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-}, [user, selectedDate, calendarTheme]); 
+  }, [user]); 
 
   useFocusEffect(
     useCallback(() => {
@@ -101,58 +110,23 @@ export default function HistoryScreen() {
     }, [loadData]) 
   );
 
-
+  // --- INTERAÇÃO ---
   const handleDayPress = (day: DateData) => {
-    if (!calendarTheme) return; 
-
-    const { dateString } = day;
-
-    setSelectedDate(dateString); 
-
-    const newFilteredWorkouts = allWorkouts.filter(w => w.date.startsWith(dateString));
-    setFilteredWorkouts(newFilteredWorkouts.reverse());
-
-    const newMarks: MarkedDates = {};
-    allWorkouts.forEach(workout => {
-      const dString = workout.date.split('T')[0]; 
-      newMarks[dString] = { marked: true, dotColor: calendarTheme.dotColor };
-    });
-
-    newMarks[dateString] = { 
-      ...newMarks[dateString], 
-      selected: true, 
-      selectedColor: calendarTheme.selectedDayBackgroundColor 
-    };
-    
-    setMarkedDates(newMarks);
+    setSelectedDate(day.dateString);
   };
 
-
-// RENDERIZAÇÃO DO ITEM
+  // --- RENDERIZAÇÃO ---
   const renderWorkoutItem = ({ item }: { item: Workout }) => {
-    
     const workoutDate = new Date(item.date);
-
-    const timePart = workoutDate.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false, 
-    });
-
-    const datePart = workoutDate.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short',
-      year: '2-digit',
-    });
-
+    const timePart = workoutDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const datePart = workoutDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: '2-digit' });
     const fullDateString = `${datePart}, às ${timePart}:`;
+
+    if (!styles) return null;
 
     return (
       <View style={styles.workoutCard}>
-        <Text style={styles.workoutDate}>
-          {fullDateString}
-        </Text>
-        
+        <Text style={styles.workoutDate}>{fullDateString}</Text>
         {item.exercises.map((exercise, index) => (
           <View key={index} style={styles.exerciseItem}>
             <Text style={styles.exerciseName}>{exercise.name}</Text>
@@ -167,21 +141,21 @@ export default function HistoryScreen() {
     );
   };
 
-  // Ecrã de loading
   if (loading) {
     return (
       <ScreenBackground>
-        <View style={[styles.container, styles.center]}>
+        {/* Usa o estilo loadingContainer para centralizar */}
+        <View style={styles?.loadingContainer || {flex:1, justifyContent:'center'}}>
           <ActivityIndicator size="large" color="#FFD60A" />
         </View>
       </ScreenBackground>
     );
   }
 
-  // RENDERIZAÇÃO PRINCIPAL
+  if (!styles) return null;
+
   return (
     <ScreenBackground>
-      {/* Container principal para o FlatList */}
       <View style={styles.container}> 
         <FlatList
           data={filteredWorkouts} 
@@ -189,7 +163,6 @@ export default function HistoryScreen() {
           renderItem={renderWorkoutItem}
           contentContainerStyle={styles.listContainer}
 
-          // --- CABEÇALHO DA LISTA ---
           ListHeaderComponent={
             <>
               <Text style={styles.screenTitle}>
@@ -204,6 +177,9 @@ export default function HistoryScreen() {
                 enableSwipeMonths={true}
                 hideExtraDays={true}
               />
+              
+              {/* USO DO ESTILO ORGANIZADO PARA O ESPAÇAMENTO */}
+              <View style={styles.calendarSpacer} />
             </>
           }
 

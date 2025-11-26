@@ -14,7 +14,6 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [loading, setLoading] = useState(false);
-  // NOVO: Estado para a confirmação de senha
   const [confirmPassword, setConfirmPassword] = useState(''); 
   
   const { signIn, signUp } = useAuth();
@@ -26,7 +25,6 @@ export default function LoginScreen() {
       return;
     }
     
-    // Validação de Confirmação de Senha e Comprimento
     if (isSigningUp) {
         if (password !== confirmPassword) {
             Alert.alert('Erro', 'As senhas digitadas não coincidem. Por favor, verifique.');
@@ -122,6 +120,7 @@ export default function LoginScreen() {
           {loading && <ActivityIndicator style={styles.loading} size="small" color="#FFD60A" />}
         </View>
 
+        {/* Botão de Alternar Login/Cadastro */}
         <TouchableOpacity onPress={() => setIsSigningUp(!isSigningUp)}>
           <Text style={styles.toggleText}>
             {isSigningUp 
@@ -129,6 +128,17 @@ export default function LoginScreen() {
               : 'Não tem conta? Registre-se'}
           </Text>
         </TouchableOpacity>
+
+        {/* --- NOVO: BOTÃO "ESQUECEU A SENHA" --- */}
+        {/* Aparece apenas se NÃO estiver na tela de cadastro */}
+        {!isSigningUp && (
+            <TouchableOpacity 
+                style={styles.forgotButton} 
+                onPress={() => router.push('/(auth)/reset_password')}
+            >
+                <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+            </TouchableOpacity>
+        )}
         
       </ScrollView>
     </ScreenBackground>
