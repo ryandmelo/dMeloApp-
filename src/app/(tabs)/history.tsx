@@ -8,15 +8,20 @@ import {
   StyleSheet
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+
+// 1. IMPORTAÇÕES DO CALENDÁRIO e TIPOS
 import { Calendar, LocaleConfig, DateData } from 'react-native-calendars';
 import { getWorkouts } from '../../services/storage';
 import { Workout } from '../../types';
 import ScreenBackground from '../../components/ScreenBackground'; 
 import Button from '../../components/Button'; 
 import { useAuth } from '../../context/AuthContext'; 
+// --- CORREÇÃO DE IMPORTS ---
+// Nota: Assumo que você corrigiu o .ts no seu ambiente
 import styles from '../../styles/stylesHistory'; 
 import { calendarTheme } from '../../styles/stylesHistory';
 
+// Definimos o tipo MarkedDates localmente para evitar erros de importação
 type MarkedDates = {
   [date: string]: {
     marked?: boolean;
@@ -50,66 +55,79 @@ export default function HistoryScreen() {
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
   const [markedDates, setMarkedDates] = useState<MarkedDates>({});
 
+  // 1. FUNÇÃO DE CARREGAMENTO: Dependências incluem user e o tema (para o caso de ser undefined no início)
   const loadData = useCallback(async () => {
-  if (!user || !user.uid) {
-    Alert.alert('Erro', 'Usuário não autenticado');
-    setLoading(false);
-    return;
-  }
+    // Validação Defensiva: Se o user não existe ou se o tema ainda não foi carregado
+    if (!user || !user.uid || !calendarTheme) {
+        setLoading(false);
+        return;
+    }
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const savedWorkouts = await getWorkouts(user.uid); 
-    setAllWorkouts(savedWorkouts); 
+    try {
+        const today = getTodayDateString();
+        // Nota: Não setamos setSelectedDate(today) aqui para não causar re-render desnecessário
+        
+        const savedWorkouts = await getWorkouts(user.uid); 
+        setAllWorkouts(savedWorkouts); 
 
-    // Processamento e Filtragem
-    let initialFiltered: Workout[] = [];
-    const marks: MarkedDates = {};
+        // Processamento e Filtragem
+        let initialFiltered: Workout[] = [];
+        const marks: MarkedDates = {};
 
-    savedWorkouts.forEach(workout => {
-      const dateString = workout.date.split('T')[0]; 
-      
-      if (dateString === getTodayDateString()) {
-        initialFiltered.push(workout);
-      }
+        savedWorkouts.forEach(workout => {
+          const dateString = workout.date.split('T')[0]; 
+          
+          if (dateString === selectedDate) { // Usa a data selecionada (que é 'hoje' na primeira renderização)
+            initialFiltered.push(workout);
+          }
 
-      marks[dateString] = { marked: true, dotColor: calendarTheme.dotColor };
-    });
+          // Usa o tema (que agora sabemos que existe)
+          marks[dateString] = { marked: true, dotColor: calendarTheme.dotColor };
+        });
 
-    marks[getTodayDateString()] = { 
-      ...marks[getTodayDateString()], 
-      selected: true, 
-      selectedColor: calendarTheme.selectedDayBackgroundColor 
-    };
-    
-    setFilteredWorkouts(initialFiltered.reverse());
-    setMarkedDates(marks);
+        marks[selectedDate] = { 
+          ...marks[selectedDate], 
+          selected: true, 
+          selectedColor: calendarTheme.selectedDayBackgroundColor 
+        };
+        
+        setFilteredWorkouts(initialFiltered.reverse());
+        setMarkedDates(marks);
 
-  } catch (e) {
-    console.error('Erro ao carregar dados do histórico: ', e);
-    Alert.alert('Erro', 'Não foi possível carregar o histórico de treinos.');
-  } finally {
-    setLoading(false);
-  }
-}, [user]); // Recarrega se o objeto user mudar (ex: login/logout)
+    } catch (e) {
+      console.error('Erro ao carregar dados do histórico: ', e);
+      Alert.alert('Erro', 'Não foi possível carregar o histórico de treinos.');
+    } finally {
+      setLoading(false);
+    }
+    // As dependências que causam re-render devem ser mínimas
+}, [user, selectedDate, calendarTheme]); // Dependências: user (auth) e selectedDate (se tiver mudado)
 
-  useFocusEffect(() => {
-    loadData();
-  }); 
+  // 2. CORREÇÃO DO LOOP INFINITO: Usamos a dependência [user] para estabilizar o effect
+  useFocusEffect(
+    useCallback(() => {
+        loadData();
+    }, [loadData]) // Recarrega apenas quando loadData muda (o que só acontece quando user muda)
+  );
 
 
   // 5. FUNÇÃO: Chamada ao clicar num dia
   const handleDayPress = (day: DateData) => {
-    // Validação Defensiva Rápida
+    // Validação Defensiva Rápida (Mantida)
     if (!calendarTheme) return; 
 
     const { dateString } = day;
 
-    setSelectedDate(dateString);
+    // Apenas setamos o estado, o useFocusEffect/loadData não precisa ser chamado aqui.
+    setSelectedDate(dateString); 
+
+    // O código abaixo faz a filtragem manual para não ter delay de recarregamento
     const newFilteredWorkouts = allWorkouts.filter(w => w.date.startsWith(dateString));
     setFilteredWorkouts(newFilteredWorkouts.reverse());
 
+    // Atualiza marcações (Mantida)
     const newMarks: MarkedDates = {};
     allWorkouts.forEach(workout => {
       const dString = workout.date.split('T')[0]; 
