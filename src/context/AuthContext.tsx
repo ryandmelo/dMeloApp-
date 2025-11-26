@@ -1,59 +1,86 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'; 
-import { auth } from '../services/firebaseConfig'; 
+import { doc, getDoc, setDoc } from 'firebase/firestore'; 
+import { auth, db } from '../services/firebaseConfig'; 
 
-// 1. Interface atualizada (mantida igual, o tipo é o mesmo)
 interface AuthContextType {
-  user: User | null; // O objeto User do Firebase
+  user: User | null;
   isAuthenticated: boolean;
+  isPremium: boolean; 
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>; // FUNÇÃO recarregar status premium
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isPremium, setIsPremium] = useState(false); // <-- ESTADO PREMIUM
   const [isLoading, setIsLoading] = useState(true);
-  
-  // 1. NOVO: isAuthenticated agora é um estado gerenciado
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Listener do Firebase para gerenciar o estado
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser); 
+  const fetchUserData = async (uid: string) => {
+    try {
+      const docRef = doc(db, "users", uid);
+      const docSnap = await getDoc(docRef);
       
-      // 2. CORREÇÃO: Atualizamos isAuthenticated no mesmo local onde o user é checado
-      setIsAuthenticated(!!firebaseUser); 
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setIsPremium(data.isPremium || false); // Lê se é premium
+      } else {
+        setIsPremium(false);
+      }
+    } catch (error) {
+      console.log("Erro ao buscar perfil:", error);
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      
+      if (firebaseUser) {
+        await fetchUserData(firebaseUser.uid);
+      } else {
+        setIsPremium(false);
+      }
       
       setIsLoading(false); 
     });
 
     return unsubscribe;
-  }, []); // A dependência vazia é correta para o listener
-
-  // --- FUNÇÕES DE AUTENTICAÇÃO ---
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
   };
 
   const signUp = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Ao criar conta, cria também o documento no Firestore com premium false
+    await setDoc(doc(db, "users", userCredential.user.uid), {
+        email: email,
+        isPremium: false,
+        createdAt: new Date().toISOString()
+    });
   };
 
   const signOut = async () => {
     await auth.signOut();
+    setIsPremium(false);
   };
 
-  // 3. REMOVIDO: A constante derivada foi substituída pelo estado 'isAuthenticated'
+  // Função para forçar a atualização (usada após a "compra")
+  const refreshProfile = async () => {
+    if (user) await fetchUserData(user.uid);
+  };
 
-  // 4. O valor do provedor agora usa o estado 'isAuthenticated'
+  const isAuthenticated = !!user;
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isPremium, isLoading, signIn, signUp, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

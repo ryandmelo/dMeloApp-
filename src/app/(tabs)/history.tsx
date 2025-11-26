@@ -8,20 +8,15 @@ import {
   StyleSheet
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-
-// 1. IMPORTAÇÕES DO CALENDÁRIO e TIPOS
 import { Calendar, LocaleConfig, DateData } from 'react-native-calendars';
 import { getWorkouts } from '../../services/storage';
 import { Workout } from '../../types';
 import ScreenBackground from '../../components/ScreenBackground'; 
 import Button from '../../components/Button'; 
 import { useAuth } from '../../context/AuthContext'; 
-// --- CORREÇÃO DE IMPORTS ---
-// Nota: Assumo que você corrigiu o .ts no seu ambiente
 import styles from '../../styles/stylesHistory'; 
 import { calendarTheme } from '../../styles/stylesHistory';
 
-// Definimos o tipo MarkedDates localmente para evitar erros de importação
 type MarkedDates = {
   [date: string]: {
     marked?: boolean;
@@ -55,9 +50,8 @@ export default function HistoryScreen() {
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
   const [markedDates, setMarkedDates] = useState<MarkedDates>({});
 
-  // 1. FUNÇÃO DE CARREGAMENTO: Dependências incluem user e o tema (para o caso de ser undefined no início)
+  // FUNÇÃO DE CARREGAMENTO
   const loadData = useCallback(async () => {
-    // Validação Defensiva: Se o user não existe ou se o tema ainda não foi carregado
     if (!user || !user.uid || !calendarTheme) {
         setLoading(false);
         return;
@@ -67,12 +61,10 @@ export default function HistoryScreen() {
 
     try {
         const today = getTodayDateString();
-        // Nota: Não setamos setSelectedDate(today) aqui para não causar re-render desnecessário
         
         const savedWorkouts = await getWorkouts(user.uid); 
         setAllWorkouts(savedWorkouts); 
 
-        // Processamento e Filtragem
         let initialFiltered: Workout[] = [];
         const marks: MarkedDates = {};
 
@@ -83,7 +75,6 @@ export default function HistoryScreen() {
             initialFiltered.push(workout);
           }
 
-          // Usa o tema (que agora sabemos que existe)
           marks[dateString] = { marked: true, dotColor: calendarTheme.dotColor };
         });
 
@@ -102,32 +93,25 @@ export default function HistoryScreen() {
     } finally {
       setLoading(false);
     }
-    // As dependências que causam re-render devem ser mínimas
-}, [user, selectedDate, calendarTheme]); // Dependências: user (auth) e selectedDate (se tiver mudado)
+}, [user, selectedDate, calendarTheme]); 
 
-  // 2. CORREÇÃO DO LOOP INFINITO: Usamos a dependência [user] para estabilizar o effect
   useFocusEffect(
     useCallback(() => {
         loadData();
-    }, [loadData]) // Recarrega apenas quando loadData muda (o que só acontece quando user muda)
+    }, [loadData]) 
   );
 
 
-  // 5. FUNÇÃO: Chamada ao clicar num dia
   const handleDayPress = (day: DateData) => {
-    // Validação Defensiva Rápida (Mantida)
     if (!calendarTheme) return; 
 
     const { dateString } = day;
 
-    // Apenas setamos o estado, o useFocusEffect/loadData não precisa ser chamado aqui.
     setSelectedDate(dateString); 
 
-    // O código abaixo faz a filtragem manual para não ter delay de recarregamento
     const newFilteredWorkouts = allWorkouts.filter(w => w.date.startsWith(dateString));
     setFilteredWorkouts(newFilteredWorkouts.reverse());
 
-    // Atualiza marcações (Mantida)
     const newMarks: MarkedDates = {};
     allWorkouts.forEach(workout => {
       const dString = workout.date.split('T')[0]; 
@@ -144,7 +128,7 @@ export default function HistoryScreen() {
   };
 
 
-// 6. RENDERIZAÇÃO DO ITEM
+// RENDERIZAÇÃO DO ITEM
   const renderWorkoutItem = ({ item }: { item: Workout }) => {
     
     const workoutDate = new Date(item.date);
@@ -183,7 +167,7 @@ export default function HistoryScreen() {
     );
   };
 
-  // 7. Ecrã de loading
+  // Ecrã de loading
   if (loading) {
     return (
       <ScreenBackground>
@@ -194,7 +178,7 @@ export default function HistoryScreen() {
     );
   }
 
-  // 8. RENDERIZAÇÃO PRINCIPAL
+  // RENDERIZAÇÃO PRINCIPAL
   return (
     <ScreenBackground>
       {/* Container principal para o FlatList */}
@@ -216,7 +200,7 @@ export default function HistoryScreen() {
                 theme={calendarTheme}
                 onDayPress={handleDayPress}
                 markedDates={markedDates}
-                current={selectedDate} // Garante que o calendário mostre o mês selecionado
+                current={selectedDate} 
                 enableSwipeMonths={true}
                 hideExtraDays={true}
               />
